@@ -6,19 +6,38 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
+    @State private var selectedTab = 0
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView(selection: $selectedTab) {
+            InvocationsListView()
+                .tabItem {
+                    Label("Active", systemImage: "checklist")
+                }
+                .tag(0)
+
+            ChecklistsListView()
+                .tabItem {
+                    Label("Templates", systemImage: "doc.on.doc")
+                }
+                .tag(1)
+
+            HistoryListView()
+                .tabItem {
+                    Label("History", systemImage: "clock")
+                }
+                .tag(2)
         }
-        .padding()
+        .onReceive(NotificationCenter.default.publisher(for: .didCreateInvocation)) { _ in
+            selectedTab = 0
+        }
     }
 }
 
 #Preview {
     ContentView()
+        .modelContainer(for: [Checklist.self, Invocation.self], inMemory: true)
 }
