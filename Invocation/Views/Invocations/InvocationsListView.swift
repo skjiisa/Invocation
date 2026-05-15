@@ -8,6 +8,7 @@ import SwiftData
 
 struct InvocationsListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppState.self) private var appState
     @Query(
         filter: #Predicate<Invocation> { $0.statusRawValue == "active" },
         sort: \Invocation.createdAt,
@@ -15,7 +16,9 @@ struct InvocationsListView: View {
     ) private var invocations: [Invocation]
 
     var body: some View {
-        NavigationStack {
+        @Bindable var appState = appState
+
+        NavigationStack(path: $appState.activeTabPath) {
             List {
                 ForEach(invocations) { invocation in
                     NavigationLink(value: invocation) {
@@ -60,5 +63,6 @@ struct InvocationsListView: View {
 
 #Preview {
     InvocationsListView()
+        .environment(AppState())
         .modelContainer(for: Invocation.self, inMemory: true)
 }

@@ -81,7 +81,12 @@ struct ChecklistsListView: View {
     private func invoke(_ checklist: Checklist) {
         let invocation = Invocation.from(checklist)
         modelContext.insert(invocation)
+        appState.activeTabPath = NavigationPath()
         appState.selectedTab = .active
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            appState.activeTabPath.append(invocation)
+        }
     }
 }
 
