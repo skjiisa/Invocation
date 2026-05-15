@@ -14,8 +14,6 @@ struct InvocationsListView: View {
         order: .reverse
     ) private var invocations: [Invocation]
 
-    @State private var selectedInvocationId: UUID?
-
     var body: some View {
         NavigationStack {
             List {
@@ -27,6 +25,12 @@ struct InvocationsListView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                    }
+                    .swipeActions(edge: .leading) {
+                        Button("Archive", systemImage: "archivebox") {
+                            invocation.archive()
+                        }
+                        .tint(.orange)
                     }
                 }
                 .onDelete(perform: deleteInvocations)
@@ -44,24 +48,6 @@ struct InvocationsListView: View {
                     )
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .didCreateInvocation)) { notification in
-                if let invocationId = notification.object as? UUID {
-                    selectedInvocationId = invocationId
-                }
-            }
-            .onChange(of: selectedInvocationId) { _, newValue in
-                if let id = newValue,
-                   let invocation = invocations.first(where: { $0.id == id }) {
-                    selectedInvocationId = nil
-                    // Navigate to the invocation
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        NotificationCenter.default.post(
-                            name: .navigateToInvocation,
-                            object: invocation
-                        )
-                    }
-                }
-            }
         }
     }
 
@@ -70,10 +56,6 @@ struct InvocationsListView: View {
             modelContext.delete(invocations[index])
         }
     }
-}
-
-extension Notification.Name {
-    static let navigateToInvocation = Notification.Name("navigateToInvocation")
 }
 
 #Preview {

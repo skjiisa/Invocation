@@ -8,11 +8,11 @@ import SwiftData
 
 struct ChecklistDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppState.self) private var appState
     @Bindable var checklist: Checklist
 
     @State private var showingEditSheet = false
     @State private var showingAddItemSheet = false
-    @State private var navigationPath = NavigationPath()
 
     var body: some View {
         List {
@@ -31,30 +31,20 @@ struct ChecklistDetailView: View {
                 .onDelete(perform: deleteItems)
                 .onMove(perform: moveItems)
 
-                Button {
+                Button("Add Item", systemImage: "plus") {
                     showingAddItemSheet = true
-                } label: {
-                    Label("Add Item", systemImage: "plus")
                 }
             }
         }
         .navigationTitle(checklist.name.isEmpty ? "Untitled" : checklist.name)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button {
+                Menu("More", systemImage: "ellipsis.circle") {
+                    Button("Edit Template", systemImage: "pencil") {
                         showingEditSheet = true
-                    } label: {
-                        Label("Edit Template", systemImage: "pencil")
                     }
-
-                    Button {
-                        invokeChecklist()
-                    } label: {
-                        Label("Invoke", systemImage: "play.fill")
-                    }
-                } label: {
-                    Label("More", systemImage: "ellipsis.circle")
+                    Button("Invoke", systemImage: "play.fill", action: invokeChecklist)
+                        .disabled(checklist.items.isEmpty)
                 }
             }
         }
@@ -89,36 +79,16 @@ struct ChecklistDetailView: View {
     }
 
     private func invokeChecklist() {
-        let invocation = Invocation(
-            name: checklist.name,
-            isOrdered: checklist.isOrdered,
-            sourceChecklistId: checklist.id
-        )
-
-        for item in checklist.sortedItems {
-            let invocationItem = InvocationItem(
-                name: item.name,
-                sortOrder: item.sortOrder
-            )
-            invocation.items.append(invocationItem)
-        }
-
+        let invocation = Invocation.from(checklist)
         modelContext.insert(invocation)
-
-        NotificationCenter.default.post(
-            name: .didCreateInvocation,
-            object: invocation.id
-        )
+        appState.selectedTab = .active
     }
-}
-
-extension Notification.Name {
-    static let didCreateInvocation = Notification.Name("didCreateInvocation")
 }
 
 #Preview {
     NavigationStack {
         ChecklistDetailView(checklist: Checklist(name: "Sample", isOrdered: true))
     }
+    .environment(AppState())
     .modelContainer(for: Checklist.self, inMemory: true)
 }

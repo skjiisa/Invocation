@@ -11,9 +11,7 @@ struct InvocationItemRow: View {
 
     var body: some View {
         Button {
-            if !isReadOnly {
-                item.isCompleted.toggle()
-            }
+            item.isCompleted.toggle()
         } label: {
             HStack {
                 Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
@@ -27,6 +25,7 @@ struct InvocationItemRow: View {
         }
         .disabled(isReadOnly)
         .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: item.isCompleted)
     }
 }
 

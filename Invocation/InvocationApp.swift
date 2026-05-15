@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct InvocationApp: App {
+    @State private var appState = AppState()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Checklist.self,
@@ -29,6 +31,7 @@ struct InvocationApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(appState)
         }
         .modelContainer(sharedModelContainer)
     }

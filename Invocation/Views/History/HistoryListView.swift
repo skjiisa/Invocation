@@ -20,24 +20,22 @@ struct HistoryListView: View {
             List {
                 ForEach(invocations) { invocation in
                     NavigationLink(value: invocation) {
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 Text(invocation.name.isEmpty ? "Untitled" : invocation.name)
-
                                 Spacer()
-
-                                statusBadge(for: invocation)
+                                StatusBadgeView(status: invocation.status)
                             }
-
-                            if let completedAt = invocation.completedAt {
-                                Text(completedAt, style: .date)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                Text(invocation.createdAt, style: .date)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            HStack {
+                                Text("\(invocation.completedItemsCount) of \(invocation.items.count) completed")
+                                Spacer()
+                                Text(
+                                    invocation.completedAt ?? invocation.createdAt,
+                                    format: .dateTime.day().month().year().hour().minute()
+                                )
                             }
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -56,22 +54,6 @@ struct HistoryListView: View {
                     )
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private func statusBadge(for invocation: Invocation) -> some View {
-        switch invocation.status {
-        case .completed:
-            Label("Completed", systemImage: "checkmark.circle.fill")
-                .labelStyle(.iconOnly)
-                .foregroundStyle(.green)
-        case .archived:
-            Label("Archived", systemImage: "archivebox.fill")
-                .labelStyle(.iconOnly)
-                .foregroundStyle(.orange)
-        case .active:
-            EmptyView()
         }
     }
 

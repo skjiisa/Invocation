@@ -29,7 +29,7 @@ final class Invocation {
         self.name = name
         self.isOrdered = isOrdered
         self.statusRawValue = InvocationStatus.active.rawValue
-        self.createdAt = Date()
+        self.createdAt = .now
         self.completedAt = nil
         self.sourceChecklistId = sourceChecklistId
         self.items = []
@@ -39,12 +39,16 @@ final class Invocation {
         items.sorted { $0.sortOrder < $1.sortOrder }
     }
 
+    var completedItems: [InvocationItem] {
+        sortedItems.filter(\.isCompleted)
+    }
+
     var completedItemsCount: Int {
-        items.filter { $0.isCompleted }.count
+        items.count(where: \.isCompleted)
     }
 
     var allItemsCompleted: Bool {
-        !items.isEmpty && items.allSatisfy { $0.isCompleted }
+        !items.isEmpty && items.allSatisfy(\.isCompleted)
     }
 
     var nextUncompletedItem: InvocationItem? {
@@ -53,10 +57,26 @@ final class Invocation {
 
     func markComplete() {
         status = .completed
-        completedAt = Date()
+        completedAt = .now
     }
 
     func archive() {
         status = .archived
+    }
+}
+
+extension Invocation {
+    static func from(_ checklist: Checklist) -> Invocation {
+        let invocation = Invocation(
+            name: checklist.name,
+            isOrdered: checklist.isOrdered,
+            sourceChecklistId: checklist.id
+        )
+        for item in checklist.sortedItems {
+            invocation.items.append(
+                InvocationItem(name: item.name, sortOrder: item.sortOrder)
+            )
+        }
+        return invocation
     }
 }

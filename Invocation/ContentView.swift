@@ -9,35 +9,27 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @State private var selectedTab = 0
+    @Environment(AppState.self) private var appState
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            InvocationsListView()
-                .tabItem {
-                    Label("Active", systemImage: "checklist")
-                }
-                .tag(0)
+        @Bindable var appState = appState
 
-            ChecklistsListView()
-                .tabItem {
-                    Label("Templates", systemImage: "doc.on.doc")
-                }
-                .tag(1)
-
-            HistoryListView()
-                .tabItem {
-                    Label("History", systemImage: "clock")
-                }
-                .tag(2)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .didCreateInvocation)) { _ in
-            selectedTab = 0
+        TabView(selection: $appState.selectedTab) {
+            Tab("Active", systemImage: "checklist", value: AppTab.active) {
+                InvocationsListView()
+            }
+            Tab("Templates", systemImage: "doc.on.doc", value: AppTab.templates) {
+                ChecklistsListView()
+            }
+            Tab("History", systemImage: "clock", value: AppTab.history) {
+                HistoryListView()
+            }
         }
     }
 }
 
 #Preview {
     ContentView()
+        .environment(AppState())
         .modelContainer(for: [Checklist.self, Invocation.self], inMemory: true)
 }

@@ -8,6 +8,7 @@ import SwiftData
 
 struct ChecklistsListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppState.self) private var appState
     @Query(sort: \Checklist.createdAt, order: .reverse) private var checklists: [Checklist]
 
     @State private var showingNewChecklistSheet = false
@@ -24,6 +25,13 @@ struct ChecklistsListView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    .swipeActions(edge: .leading) {
+                        Button("Invoke", systemImage: "play.fill") {
+                            invoke(checklist)
+                        }
+                        .tint(.green)
+                        .disabled(checklist.items.isEmpty)
+                    }
                 }
                 .onDelete(perform: deleteChecklists)
             }
@@ -33,10 +41,8 @@ struct ChecklistsListView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
+                    Button("New Template", systemImage: "plus") {
                         showingNewChecklistSheet = true
-                    } label: {
-                        Label("New Template", systemImage: "plus")
                     }
                 }
             }
@@ -60,9 +66,16 @@ struct ChecklistsListView: View {
             modelContext.delete(checklists[index])
         }
     }
+
+    private func invoke(_ checklist: Checklist) {
+        let invocation = Invocation.from(checklist)
+        modelContext.insert(invocation)
+        appState.selectedTab = .active
+    }
 }
 
 #Preview {
     ChecklistsListView()
+        .environment(AppState())
         .modelContainer(for: Checklist.self, inMemory: true)
 }
