@@ -12,25 +12,36 @@ struct ChecklistsListView: View {
     @Query(sort: \Checklist.createdAt, order: .reverse) private var checklists: [Checklist]
 
     @State private var showingNewChecklistSheet = false
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 ForEach(checklists) { checklist in
-                    NavigationLink(value: checklist) {
-                        VStack(alignment: .leading) {
-                            Text(checklist.name.isEmpty ? "Untitled" : checklist.name)
-                            Text("\(checklist.items.count) items")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .swipeActions(edge: .leading) {
+                    ChecklistRow(
+                        checklist: checklist,
+                        onTap: {
+                            if checklist.items.isEmpty {
+                                path.append(checklist)
+                            } else {
+                                invoke(checklist)
+                            }
+                        },
+                        onEdit: { path.append(checklist) }
+                    )
+                    .contextMenu {
                         Button("Invoke", systemImage: "play.fill") {
                             invoke(checklist)
                         }
-                        .tint(.green)
                         .disabled(checklist.items.isEmpty)
+
+                        Button("Edit", systemImage: "pencil") {
+                            path.append(checklist)
+                        }
+
+                        Button("Delete", systemImage: "trash", role: .destructive) {
+                            modelContext.delete(checklist)
+                        }
                     }
                 }
                 .onDelete(perform: deleteChecklists)
@@ -71,6 +82,36 @@ struct ChecklistsListView: View {
         let invocation = Invocation.from(checklist)
         modelContext.insert(invocation)
         appState.selectedTab = .active
+    }
+}
+
+private struct ChecklistRow: View {
+    let checklist: Checklist
+    let onTap: () -> Void
+    let onEdit: () -> Void
+
+    var body: some View {
+        HStack {
+            Button(action: onTap) {
+                VStack(alignment: .leading) {
+                    Text(checklist.name.isEmpty ? "Untitled" : checklist.name)
+                    Text("\(checklist.items.count) items")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Button(action: onEdit) {
+                Image(systemName: "info.circle")
+                    .font(.title3)
+                    .foregroundStyle(.tint)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("Edit \(checklist.name.isEmpty ? "Untitled" : checklist.name)")
+        }
     }
 }
 
