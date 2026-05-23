@@ -71,7 +71,6 @@ struct InvocationsListView: View {
     @ViewBuilder
     private func invocationHeader(for invocation: Invocation) -> some View {
         let isExpanded = expandedInvocations.contains(invocation.id)
-        let hasUpcoming = invocation.sortedItems.contains { !$0.isCompleted }
 
         HStack {
             Button {
@@ -83,20 +82,18 @@ struct InvocationsListView: View {
                     }
                 }
             } label: {
-                HStack(spacing: 6) {
+                Label {
                     VStack(alignment: .leading) {
                         Text(invocation.name.isEmpty ? "Untitled" : invocation.name)
                         Text("\(invocation.completedItemsCount) of \(invocation.items.count) completed")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-
-                    if hasUpcoming {
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .rotationEffect(isExpanded ? .degrees(90) : .zero)
-                            .foregroundStyle(.secondary)
-                    }
+                } icon: {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(isExpanded ? .degrees(90) : .zero)
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
