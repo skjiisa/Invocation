@@ -1,7 +1,6 @@
 //
 //  InvocationsListView.swift
 //  Invocation
-//
 
 import SwiftUI
 import SwiftData
@@ -14,6 +13,9 @@ struct InvocationsListView: View {
         sort: \Invocation.createdAt,
         order: .reverse
     ) private var invocations: [Invocation]
+    @State private var expandedInvocations: Set<UUID> = []
+    @State private var recentlyCompleted: Set<UUID> = []
+    @State private var pendingHide: DispatchWorkItem?
 
     private var sections: [DateSection] {
         let groups = Dictionary(grouping: invocations) {
@@ -32,19 +34,16 @@ struct InvocationsListView: View {
                 ForEach(sections) { section in
                     Section(title(for: section.date)) {
                         ForEach(section.invocations) { invocation in
-                            NavigationLink(value: invocation) {
-                                VStack(alignment: .leading) {
-                                    Text(invocation.name.isEmpty ? "Untitled" : invocation.name)
-                                    Text("\(invocation.completedItemsCount) of \(invocation.items.count) completed")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                            invocationHeader(for: invocation)
+                                .swipeActions(edge: .leading) {
+                                    Button("Archive", systemImage: "archivebox") {
+                                        invocation.archive()
+                                    }
+                                    .tint(.orange)
                                 }
-                            }
-                            .swipeActions(edge: .leading) {
-                                Button("Archive", systemImage: "archivebox") {
-                                    invocation.archive()
-                                }
-                                .tint(.orange)
+
+                            if expandedInvocations.contains(invocation.id) {
+                                expandedItems(for: invocation)
                             }
                         }
                         .onDelete { offsets in
@@ -67,6 +66,73 @@ struct InvocationsListView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func invocationHeader(for invocation: Invocation) -> some View {
+        let isExpanded = expandedInvocations.contains(invocation.id)
+        let hasUpcoming = invocation.sortedItems.contains { !$0.isCompleted }
+
+        HStack(spacing: 12) {
+            Button {
+                appState.activeTabPath.append(invocation)
+            } label: {
+                VStack(alignment: .leading) {
+                    Text(invocation.name.isEmpty ? "Untitled" : invocation.name)
+                    Text("\(invocation.completedItemsCount) of \(invocation.items.count) completed")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+
+            if hasUpcoming {
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) {
+                        if isExpanded {
+                            expandedInvocations.remove(invocation.id)
+                        } else {
+                            expandedInvocations.insert(invocation.id)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(isExpanded ? .degrees(90) : .zero)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func expandedItems(for invocation: Invocation) -> some View {
+        let visible = invocation.sortedItems.filter {
+            !$0.isCompleted || recentlyCompleted.contains($0.id)
+        }
+        ForEach(visible) { item in
+            InvocationItemRow(item: item) {
+                recentlyCompleted.insert(item.id)
+                scheduleHide()
+            }
+            .padding(.leading, 24)
+        }
+    }
+
+    private func scheduleHide() {
+        pendingHide?.cancel()
+        let work = DispatchWorkItem {
+            withAnimation(.snappy(duration: 0.25)) {
+                recentlyCompleted.removeAll()
+            }
+        }
+        pendingHide = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
     }
 
     private func delete(from group: [Invocation], at offsets: IndexSet) {
