@@ -114,15 +114,63 @@ struct InvocationsListView: View {
 
     @ViewBuilder
     private func expandedItems(for invocation: Invocation) -> some View {
+        if invocation.isOrdered {
+            orderedExpandedItems(for: invocation)
+        } else {
+            let visible = invocation.sortedItems.filter {
+                !$0.isCompleted || recentlyCompleted.contains($0.id)
+            }
+            ForEach(visible) { item in
+                InvocationItemRow(item: item) {
+                    recentlyCompleted.insert(item.id)
+                    scheduleHide()
+                }
+                .padding(.leading, 24)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func orderedExpandedItems(for invocation: Invocation) -> some View {
+        let total = invocation.items.count
+
+        if invocation.allItemsCompleted {
+            Text("All steps completed")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.leading, 24)
+        } else {
+            Text("Step \(invocation.completedItemsCount + 1) of \(total)")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.leading, 24)
+        }
+
+        ForEach(orderedFadeEntries(for: invocation)) { entry in
+            InvocationItemRow(item: entry.item) {
+                recentlyCompleted.insert(entry.item.id)
+                scheduleHide()
+            }
+            .opacity(entry.opacity)
+            .padding(.leading, 24)
+        }
+    }
+
+    /// Builds the visible queue for an ordered invocation: the next actionable
+    /// item at full strength, each following step progressively faded, plus any
+    /// just-completed item kept briefly visible for the toggle animation.
+    private func orderedFadeEntries(for invocation: Invocation) -> [OrderedExpandedEntry] {
         let visible = invocation.sortedItems.filter {
             !$0.isCompleted || recentlyCompleted.contains($0.id)
         }
-        ForEach(visible) { item in
-            InvocationItemRow(item: item) {
-                recentlyCompleted.insert(item.id)
-                scheduleHide()
+        var uncompletedRank = 0
+        return visible.map { item in
+            guard !item.isCompleted else {
+                return OrderedExpandedEntry(item: item, opacity: 1)
             }
-            .padding(.leading, 24)
+            let opacity = max(0.4, 1 - 0.25 * Double(uncompletedRank))
+            uncompletedRank += 1
+            return OrderedExpandedEntry(item: item, opacity: opacity)
         }
     }
 
@@ -159,6 +207,12 @@ private struct DateSection: Identifiable {
     let date: Date
     let invocations: [Invocation]
     var id: Date { date }
+}
+
+private struct OrderedExpandedEntry: Identifiable {
+    let item: InvocationItem
+    let opacity: Double
+    var id: UUID { item.id }
 }
 
 #Preview {
