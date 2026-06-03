@@ -11,12 +11,16 @@ struct ChecklistDetailView: View {
     @Environment(AppState.self) private var appState
     @Bindable var checklist: Checklist
 
-    @State private var showingEditSheet = false
-    @State private var showingAddItemSheet = false
+    @FocusState private var focusedItemID: UUID?
+    @FocusState private var nameFieldFocused: Bool
+    @State private var displayedTitle: String = ""
+    @State private var titleUpdateTask: Task<Void, Never>?
 
     var body: some View {
         List {
             Section {
+                TextField("Template Name", text: $checklist.name)
+                    .focused($nameFieldFocused)
                 Toggle("Ordered", isOn: $checklist.isOrdered)
             } footer: {
                 Text(checklist.isOrdered
@@ -26,33 +30,70 @@ struct ChecklistDetailView: View {
 
             Section("Items") {
                 ForEach(checklist.sortedItems) { item in
-                    ChecklistItemRow(item: item)
+                    ChecklistItemRow(
+                        item: item,
+                        focusedItemID: $focusedItemID,
+                        onSubmit: addItem
+                    )
                 }
                 .onDelete(perform: deleteItems)
                 .onMove(perform: moveItems)
 
-                Button("Add Item", systemImage: "plus") {
-                    showingAddItemSheet = true
-                }
+                Button("Add Item", systemImage: "plus", action: addItem)
             }
         }
-        .navigationTitle(checklist.name.isEmpty ? "Untitled" : checklist.name)
+        .scrollDismissesKeyboard(.interactively)
+        .onChange(of: focusedItemID) { oldValue, _ in
+            removeEmptyItem(id: oldValue)
+        }
+        .onAppear {
+            displayedTitle = checklist.name
+            if checklist.name.isEmpty && checklist.items.isEmpty {
+                nameFieldFocused = true
+            }
+        }
+        .onChange(of: checklist.name) {
+            titleUpdateTask?.cancel()
+            titleUpdateTask = Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
+                displayedTitle = checklist.name
+            }
+        }
+        .onDisappear(perform: deleteIfEmpty)
+        .navigationTitle(displayedTitle.isEmpty ? "Untitled" : displayedTitle)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Menu("More", systemImage: "ellipsis.circle") {
-                    Button("Edit Template", systemImage: "pencil") {
-                        showingEditSheet = true
-                    }
-                    Button("Invoke", systemImage: "play.fill", action: invokeChecklist)
-                        .disabled(checklist.items.isEmpty)
-                }
+                Button("Invoke", systemImage: "play.fill", action: invokeChecklist)
+                    .disabled(checklist.items.isEmpty)
             }
         }
-        .sheet(isPresented: $showingEditSheet) {
-            ChecklistEditSheet(checklist: checklist)
+    }
+
+    private func addItem() {
+        let newItem = ChecklistItem(name: "", sortOrder: checklist.items.count)
+        withAnimation {
+            checklist.items.append(newItem)
         }
-        .sheet(isPresented: $showingAddItemSheet) {
-            ChecklistItemEditSheet(checklist: checklist, item: nil)
+        focusedItemID = newItem.id
+    }
+
+    private func removeEmptyItem(id: UUID?) {
+        guard let id,
+              let item = checklist.items.first(where: { $0.id == id }),
+              item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return }
+        withAnimation {
+            checklist.items.removeAll { $0.id == id }
+            modelContext.delete(item)
+            reorderItems()
+        }
+    }
+
+    private func deleteIfEmpty() {
+        if checklist.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && checklist.items.isEmpty {
+            modelContext.delete(checklist)
         }
     }
 
