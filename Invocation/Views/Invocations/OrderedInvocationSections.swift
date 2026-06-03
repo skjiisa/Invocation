@@ -20,28 +20,24 @@ struct OrderedInvocationSections: View {
             }
         } else {
             let remaining = invocation.sortedItems.filter { !$0.isCompleted }
+            let nextItem = remaining.first
 
             Section {
-                UpNextRow(nextItem: remaining.first)
+                UpNextRow(nextItem: nextItem)
             } header: {
                 Text("Up Next")
             } footer: {
                 Text("\(invocation.completedItemsCount) of \(invocation.items.count) completed")
             }
 
-            let later = Array(remaining.dropFirst())
-            if !later.isEmpty {
-                Section("Then") {
-                    ForEach(later) { item in
-                        InvocationItemRow(item: item, isReadOnly: true, emphasis: .upcoming)
-                    }
-                }
-            }
-
-            if !invocation.completedItems.isEmpty {
-                Section("Completed") {
-                    ForEach(invocation.completedItems) { item in
-                        InvocationItemRow(item: item, isReadOnly: true)
+            // The full list below shows every item — including a dimmed copy of
+            // the promoted "Up Next" item — in fixed order. Keeping membership and
+            // order stable means completing or undoing anything out of sequence
+            // only morphs that row's color/symbol/opacity in place; nothing shifts.
+            if !invocation.items.isEmpty {
+                Section {
+                    ForEach(invocation.sortedItems) { item in
+                        InvocationItemRow(item: item, emphasis: item.isCompleted ? .normal : .upcoming)
                     }
                 }
             }

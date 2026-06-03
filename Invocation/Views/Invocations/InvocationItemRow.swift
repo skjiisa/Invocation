@@ -31,11 +31,11 @@ struct InvocationItemRow: View {
             HStack {
                 Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(circleColor)
-                    .imageScale(emphasis == .upcoming ? .medium : .large)
+                    .imageScale(.large)
                     .contentTransition(.symbolEffect(.replace))
 
                 Text(item.name.isEmpty ? "Untitled" : item.name)
-                    .font(emphasis == .upcoming ? .subheadline : .body)
+                    .font(.body)
                     .fontWeight(emphasis == .next ? .semibold : .regular)
                     .foregroundStyle(textColor)
                     .strikethrough(item.isCompleted)

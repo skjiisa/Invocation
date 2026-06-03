@@ -147,7 +147,7 @@ struct InvocationsListView: View {
         }
 
         ForEach(orderedFadeEntries(for: invocation)) { entry in
-            InvocationItemRow(item: entry.item, isReadOnly: !entry.isNext) {
+            InvocationItemRow(item: entry.item) {
                 recentlyCompleted.insert(entry.item.id)
                 scheduleHide()
             }
@@ -166,12 +166,11 @@ struct InvocationsListView: View {
         var uncompletedRank = 0
         return visible.map { item in
             guard !item.isCompleted else {
-                return OrderedExpandedEntry(item: item, opacity: 1, isNext: false)
+                return OrderedExpandedEntry(item: item, opacity: 1)
             }
-            let isNext = uncompletedRank == 0
             let opacity = max(0.4, 1 - 0.25 * Double(uncompletedRank))
             uncompletedRank += 1
-            return OrderedExpandedEntry(item: item, opacity: opacity, isNext: isNext)
+            return OrderedExpandedEntry(item: item, opacity: opacity)
         }
     }
 
@@ -213,7 +212,6 @@ private struct DateSection: Identifiable {
 private struct OrderedExpandedEntry: Identifiable {
     let item: InvocationItem
     let opacity: Double
-    let isNext: Bool
     var id: UUID { item.id }
 }
 
