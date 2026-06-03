@@ -39,6 +39,7 @@ struct InvocationItemRow: View {
                     .fontWeight(emphasis == .next ? .semibold : .regular)
                     .foregroundStyle(textColor)
                     .strikethrough(item.isCompleted)
+                    .contentTransition(emphasis == .next ? .numericText() : .identity)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
