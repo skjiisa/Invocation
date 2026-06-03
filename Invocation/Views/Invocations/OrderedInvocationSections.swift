@@ -19,17 +19,28 @@ struct OrderedInvocationSections: View {
                 Text("\(invocation.completedItemsCount) of \(invocation.items.count) completed")
             }
         } else {
+            let remaining = invocation.sortedItems.filter { !$0.isCompleted }
+
             Section {
-                if let nextItem = invocation.nextUncompletedItem {
-                    InvocationItemRow(item: nextItem)
+                if let nextItem = remaining.first {
+                    InvocationItemRow(item: nextItem, emphasis: .next)
                 } else {
                     Text("All items completed!")
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("Current Item")
+                Text("Up Next")
             } footer: {
                 Text("\(invocation.completedItemsCount) of \(invocation.items.count) completed")
+            }
+
+            let later = Array(remaining.dropFirst())
+            if !later.isEmpty {
+                Section("Then") {
+                    ForEach(later) { item in
+                        InvocationItemRow(item: item, isReadOnly: true, emphasis: .upcoming)
+                    }
+                }
             }
 
             if !invocation.completedItems.isEmpty {
