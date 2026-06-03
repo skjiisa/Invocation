@@ -12,7 +12,7 @@ struct ChecklistDetailView: View {
     @Bindable var checklist: Checklist
 
     @State private var showingEditSheet = false
-    @State private var showingAddItemSheet = false
+    @FocusState private var focusedItemID: UUID?
 
     var body: some View {
         List {
@@ -26,15 +26,21 @@ struct ChecklistDetailView: View {
 
             Section("Items") {
                 ForEach(checklist.sortedItems) { item in
-                    ChecklistItemRow(item: item)
+                    ChecklistItemRow(
+                        item: item,
+                        focusedItemID: $focusedItemID,
+                        onSubmit: addItem
+                    )
                 }
                 .onDelete(perform: deleteItems)
                 .onMove(perform: moveItems)
 
-                Button("Add Item", systemImage: "plus") {
-                    showingAddItemSheet = true
-                }
+                Button("Add Item", systemImage: "plus", action: addItem)
             }
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .onChange(of: focusedItemID) { oldValue, _ in
+            removeEmptyItem(id: oldValue)
         }
         .navigationTitle(checklist.name.isEmpty ? "Untitled" : checklist.name)
         .toolbar {
@@ -51,8 +57,25 @@ struct ChecklistDetailView: View {
         .sheet(isPresented: $showingEditSheet) {
             ChecklistEditSheet(checklist: checklist)
         }
-        .sheet(isPresented: $showingAddItemSheet) {
-            ChecklistItemEditSheet(checklist: checklist, item: nil)
+    }
+
+    private func addItem() {
+        let newItem = ChecklistItem(name: "", sortOrder: checklist.items.count)
+        withAnimation {
+            checklist.items.append(newItem)
+        }
+        focusedItemID = newItem.id
+    }
+
+    private func removeEmptyItem(id: UUID?) {
+        guard let id,
+              let item = checklist.items.first(where: { $0.id == id }),
+              item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return }
+        withAnimation {
+            checklist.items.removeAll { $0.id == id }
+            modelContext.delete(item)
+            reorderItems()
         }
     }
 
