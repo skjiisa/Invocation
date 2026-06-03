@@ -11,7 +11,6 @@ struct ChecklistsListView: View {
     @Environment(AppState.self) private var appState
     @Query(sort: \Checklist.createdAt, order: .reverse) private var checklists: [Checklist]
 
-    @State private var showingNewChecklistSheet = false
     @State private var path = NavigationPath()
 
     var body: some View {
@@ -52,13 +51,8 @@ struct ChecklistsListView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("New Template", systemImage: "plus") {
-                        showingNewChecklistSheet = true
-                    }
+                    Button("New Template", systemImage: "plus", action: newChecklist)
                 }
-            }
-            .sheet(isPresented: $showingNewChecklistSheet) {
-                ChecklistEditSheet(checklist: nil)
             }
             .overlay {
                 if checklists.isEmpty {
@@ -70,6 +64,12 @@ struct ChecklistsListView: View {
                 }
             }
         }
+    }
+
+    private func newChecklist() {
+        let checklist = Checklist()
+        modelContext.insert(checklist)
+        path.append(checklist)
     }
 
     private func deleteChecklists(at offsets: IndexSet) {
